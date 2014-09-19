@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# desc: check service status from given service name
+# syntax: ./service_check <SERVICE_NAME>
+# boi - portege@gmail.com
+# 20110820
+# original filename : service_checker
+
+# config
+MYHOST=''
+MYUSER=''
+MYPASS=''
+
+SCRIPT=`basename $0`
+SERVICE=$1
+LOG=/var/log/
+IPADDR=`/sbin/ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'`
+LOGSIZE=`stat -c%s $LOG$SCRIPT.log`
+
+if [ -x $SERVICE ];then
+        echo 'usage ./service_check <SERVICE NAME>'
+        exit 0
+fi
+
+if [ $LOGSIZE -gt 10000000 ]; then
+        echo '' > $LOG$SCRIPT.log
+fi
+
+if !(`ps ax | grep -v grep | grep -v $SCRIPT | grep $SERVICE > /dev/null`);then
+        /sbin/service $SERVICE start
+        STATUS="`date`  -  $SERVICE restarted"
+        echo $STATUS >> $LOG$SCRIPT.log
+        /usr/bin/mysql -h $MYHOST -u $MYUSER -p$MYPASS $SCRIPT -e "INSERT INTO status (id ,src ,stat)VALUES (NULL ,  '$IPADDR',  '$STATUS')"
+fi
+
+exit 0
